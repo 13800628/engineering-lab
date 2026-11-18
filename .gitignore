@@ -50,8 +50,8 @@ venv/
 .mvn/wrapper/maven-wrapper.jar
 
 # Go
-/vendor/
-/bin/
+vendor/
+bin/
 *.exe
 *.test
 *.out
