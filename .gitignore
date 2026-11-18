@@ -1,0 +1,57 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE / Editor
+.idea/
+.vscode/
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# Credentials and private keys
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Logs
+*.log
+
+# Temporary files
+tmp/
+temp/
+
+# Build outputs
+build/
+dist/
+out/
+target/
+
+# Node.js
+node_modules/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Java
+*.class
+
+# Gradle
+.gradle/
+
+# Maven
+.mvn/wrapper/maven-wrapper.jar
+
+# Go
+/vendor/
+/bin/
+*.exe
+*.test
+*.out
