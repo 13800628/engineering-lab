@@ -41,7 +41,7 @@ func ParseBitName(name string) (Permission, error) {
 	return bit, nil
 }
 
-func PerseBit(text string) (Permission, error) {
+func ParseBits(text string) (Permission, error) {
 	if len(text) != 9 {
 		return 0, fmt.Errorf("9bit文字列は9文字で指定してください: %q", text)
 	}
