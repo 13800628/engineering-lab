@@ -8,10 +8,12 @@ import (
 	"sort"
 )
 
+// 検証で使う用のjsonファイル
 const stateFilePath = "state.json"
 
 type Files map[string]Permission
 
+// ファイル内の形式
 type fileRecord struct {
 	Name       *string `json:"name"`
 	Permission *int    `json:"permisson"`
@@ -21,9 +23,13 @@ type stateRecord struct {
 	Files []fileRecord `json:"files"`
 }
 
+// state.jsonを読み込んで検証し、内部表現に変換する
+// state.jsonがないとここは動かない
 func loadState(path string) (Files, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
+		// ファイルがないこと自体は初回では仕方ない
+		// 読み込んだ上、読み込み処理での失敗ならエラーとする
 		if errors.Is(err, os.ErrNotExist) {
 			return Files{}, nil
 		}
@@ -48,11 +54,13 @@ func loadState(path string) (Files, error) {
 			return nil, fmt.Errorf("%s: files[%d] (%s) に permission がありません", path, i, *item.Name)
 		}
 
+		// 範囲チェック(たまためのことを防ぐためキャスト前に検証)
 		value := *item.Permission
 		if value < 0 || value > int(AllBits) {
 			return nil, fmt.Errorf("%s: files[%d] (%s) の permission %d は範囲外です (0〜%d)", path, i, *item.Name, value, int(AllBits))
 		}
 
+		// 名前の被り
 		if _, duplicated := files[*item.Name]; duplicated {
 			return nil, fmt.Errorf("%s: name %q が重複しています", path, *item.Name)
 		}
@@ -62,6 +70,7 @@ func loadState(path string) (Files, error) {
 	return files, nil
 }
 
+// 内部表現をJSONにしてstate.jsonに書き戻す
 func saveState(path string, fiels Files) error {
 	names := make([]string, 0, len(fiels))
 	for name := range fiels {
@@ -69,6 +78,7 @@ func saveState(path string, fiels Files) error {
 	}
 	sort.Strings(names)
 
+	// 空の場合nilにするとガード節で弾かれるので空スライスにする
 	record := stateRecord{Files: make([]fileRecord, 0, len(names))}
 	for _, name := range names {
 		n := name
