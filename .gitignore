@@ -55,3 +55,6 @@ bin/
 *.exe
 *.test
 *.out
+
+
+tools/permission-bits-go/*.json
