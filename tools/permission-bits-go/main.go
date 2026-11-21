@@ -41,6 +41,7 @@ func run(args []string) error {
 	}
 	subcommand, filename, extra := args[0], args[1], args[2:]
 
+	// サブコマンドと引数の検証
 	want, known := expectedArgCount[subcommand]
 	if !known {
 		return fmt.Errorf("不明なサブコマンドです: %q\n%s", subcommand, usage)
@@ -49,11 +50,13 @@ func run(args []string) error {
 		return fmt.Errorf("%s の引数の数が正しくありません\n%s", subcommand, usage)
 	}
 
+	// その後ファイルがあるか検証
 	files, err := loadState(stateFilePath)
 	if err != nil {
 		return err
 	}
 
+	// ファイル作成の際の一定の検証
 	if subcommand == "create" {
 		if _, exists := files[filename]; exists {
 			return fmt.Errorf("すでに存在します: %s", filename)
@@ -112,6 +115,7 @@ func run(args []string) error {
 		}
 	}
 
+	// canだけビット操作がないので別で管理
 	if subcommand != "can" {
 		fmt.Printf("file : %s\n", filename)
 		fmt.Printf("bits : %s\n", perm.BitString())
