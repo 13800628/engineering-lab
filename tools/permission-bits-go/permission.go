@@ -10,7 +10,7 @@ import (
 type Permission uint16
 
 // iotaはconst内で0から始まり、連番で増えるもの(`1 << iota` だと1をiota回左にシフトさせる)
-// other, ownerの順にしているのは、rwxrwxrwxの左端(Owner Read)が最上位ビットに対応するようにする、9bit文字列と数値の対応が2進数表記と一致(学習なので)
+// other, ownerの順にしているのは、rwx-rwx-rwx の左端(Owner Read)が最上位ビットに対応するようにする、9bit文字列と数値の対応が2進数表記と一致(学習なので)
 const (
 	OtherExecute Permission = 1 << iota // 1 << 0 = 000000001
 	OtherWrite                          // 1 << 1 = 000000010
