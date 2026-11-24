@@ -1,0 +1,30 @@
+{
+ "users": [
+  {
+   "name": "alice",
+   "group": "dev"
+  },
+  {
+   "name": "bob",
+   "group": "dev"
+  },
+  {
+   "name": "carol",
+   "group": "ops"
+  }
+ ],
+ "files": [
+  {
+   "name": "report.txt",
+   "owner": "alice",
+   "group": "dev",
+   "permission": 416
+  },
+  {
+   "name": "secret.txt",
+   "owner": "bob",
+   "group": "ops",
+   "permission": 48
+  }
+ ]
+}
