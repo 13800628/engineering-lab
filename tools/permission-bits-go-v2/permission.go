@@ -21,12 +21,14 @@ const (
 
 const AllBits Permission = 1<<9 - 1
 
+// 3bit中の1bitをマスク。checkコマンドのr/w/xに対応
 const (
-	OpExecute Permission = 1 << iota
-	OpWrite
-	OpRead
+	OpExecute Permission = 1 << iota // 001=1
+	OpWrite                          // 010=2
+	OpRead                           // 100=4
 )
 
+// 誰として見るかのためのもの
 type Class int
 
 const (
@@ -35,6 +37,8 @@ const (
 	ClassOther
 )
 
+// 処理するための3bitを最下位にまで持ってくるためのもの
+// owner(8-6) group(5-3) other(3-0)
 func (c Class) shift() uint {
 	return uint(2-c) * 3
 }
@@ -43,10 +47,13 @@ func (p Permission) Triple(c Class) Permission {
 	return (p >> c.shift()) & 0b111
 }
 
+// 指定された区分(owner, group, other)での操作opが許可されるのかを返す
 func (p Permission) Allows(c Class, op Permission) bool {
 	return p.Triple(c)&op != 0
 }
 
+// ユーザーがファイルに対してどの区分なのかを決めるもの
+// 一つが決まれば他は見ない
 func Classify(userName, userGroup, fileOwner, filerGroup string) Class {
 	if userName == fileOwner {
 		return ClassOwner
@@ -77,6 +84,7 @@ func ParseBitName(name string) (Permission, error) {
 	return bit, nil
 }
 
+// checkコマンドのrwxと3bit内のマスクの対応表
 var operationByName = map[string]Permission{
 	"r": OpRead,
 	"w": OpWrite,
