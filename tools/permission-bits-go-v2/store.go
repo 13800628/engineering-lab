@@ -10,15 +10,17 @@ import (
 
 const stateFilePath = "state.json"
 
+// ファイルでの情報
 type File struct {
 	Owner string
 	Group string
 	Perm  Permission
 }
 
+// 全体での情報
 type State struct {
-	Users map[string]string
-	Files map[string]File
+	Users map[string]string // ユーザー名 → 所属グループ名
+	Files map[string]File   // ファイル名 → 情報
 }
 
 func newState() *State {
@@ -28,6 +30,8 @@ func newState() *State {
 	}
 }
 
+// 少なくとも1人がそのグループに所属しているかを判別する
+// 「グループが存在する」と 「誰かが所属している」は同義になる
 func (s *State) HasGroup(group string) bool {
 	for _, userGroup := range s.Users {
 		if userGroup == group {
@@ -37,6 +41,9 @@ func (s *State) HasGroup(group string) bool {
 	return false
 }
 
+// フィールドをポインタにしておくと、nil, "", 0などが書かれていても区別できる
+// 外部から来るものと検証済みデータで型を分けておくと
+// 検証後のものがStateになるという流れがわかりやすい
 type userRecord struct {
 	Name  *string `json:"name"`
 	Group *string `json:"group"`
@@ -54,15 +61,21 @@ type stateRecord struct {
 	Files []fileRecord `json:"files"`
 }
 
+// コマンド実行時に行う
+// state.jsonを読み込んでStateに変換する
+// 壊れたデータにしないようにここである程度の検証を行う
 func loadState(path string) (*State, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
+		// ファイルがないときは空状態とする
 		if errors.Is(err, os.ErrNotExist) {
 			return newState(), nil
 		}
+		// そうでないならエラーを返す
 		return nil, fmt.Errorf("%s を読み込めません: %w", path, err)
 	}
 
+	// ここから型の不一致やJSONの破損などを調べる
 	var record stateRecord
 	if err := json.Unmarshal(data, &record); err != nil {
 		return nil, fmt.Errorf("%s の JSON が不正です: %w", path, err)
@@ -75,6 +88,7 @@ func loadState(path string) (*State, error) {
 	return state, nil
 }
 
+// 項目が存在して、空文字でもないことを確認する関数
 func requireText(value *string, label string) (string, error) {
 	if value == nil || *value == "" {
 		return "", fmt.Errorf("%s がありません(または空です)", label)
@@ -82,6 +96,7 @@ func requireText(value *string, label string) (string, error) {
 	return *value, nil
 }
 
+// JSON用の表現を検証しながらStateに変換する
 func buildState(record stateRecord) (*State, error) {
 	if record.Users == nil {
 		return nil, errors.New(`必須項目 "users" がありません`)
@@ -92,6 +107,8 @@ func buildState(record stateRecord) (*State, error) {
 
 	state := newState()
 
+	// ユーザー側を先に読み込む
+	// ファイル側の参照整合性チェックでは全ユーザーがある前提
 	for i, item := range record.Users {
 		name, err := requireText(item.Name, fmt.Sprintf("users[%d].name", i))
 		if err != nil {
@@ -126,6 +143,7 @@ func buildState(record stateRecord) (*State, error) {
 			return nil, fmt.Errorf("%s (%s) にPermissionがありません", label, name)
 		}
 
+		// 範囲チェックはuint16にキャストする前に行う(範囲外の値が範囲内に化けることを避けるため)
 		value := *item.Permission
 		if value < 0 || value > int(AllBits) {
 			return nil, fmt.Errorf("%s (%s)のpermission %d は範囲外です(0~%d)", label, name, value, int(AllBits))
@@ -135,6 +153,7 @@ func buildState(record stateRecord) (*State, error) {
 			return nil, fmt.Errorf("ファイル名 %q が重複しています", name)
 		}
 
+		// 個々の値が正しくてもuser, filesの間に矛盾があれば存在しないものが生まれるので読み込み時に弾く
 		if _, exists := state.Users[owner]; !exists {
 			return nil, fmt.Errorf("%s (%s) の owner %q は登録されていないユーザーです", label, name, owner)
 		}
@@ -146,10 +165,12 @@ func buildState(record stateRecord) (*State, error) {
 	return state, nil
 }
 
+// 値のアドレスを返すジェネリクス
 func ptr[T any](value T) *T {
 	return &value
 }
 
+// mapのキーを昇順に並べて返す
 func sortedKeys[V any](m map[string]V) []string {
 	keys := make([]string, 0, len(m))
 	for key := range m {
@@ -159,6 +180,7 @@ func sortedKeys[V any](m map[string]V) []string {
 	return keys
 }
 
+// StateにしてくれたものをJSONにして保存する
 func saveState(path string, state *State) error {
 	record := stateRecord{
 		Users: make([]userRecord, 0, len(state.Users)),
