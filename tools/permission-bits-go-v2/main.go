@@ -21,6 +21,7 @@ const usage = `使い方: perm <subcommand> <args...>
 
 ビット名: owner-r owner-w owner-x group-r group-w group-x other-r other-w other-x`
 
+// コマンドごとの必要な引数を表す表
 var expectedArgCount = map[string]int{
 	"user add": 2,
 	"create":   2,
@@ -36,6 +37,7 @@ var expectedArgCount = map[string]int{
 }
 
 func main() {
+	// エラー表示と終了コードの決定はmainだけに集約
 	if err := run(os.Args[1:]); err != nil {
 		fmt.Fprintln(os.Stderr, "エラー:", err)
 		os.Exit(1)
@@ -48,6 +50,7 @@ func run(args []string) error {
 	}
 	subcommand, rest := args[0], args[1:]
 
+	// user addは二つの扱いだが先に一つの名前にまとめておく
 	if subcommand == "user" {
 		if len(rest) == 0 || rest[0] != "add" {
 			return fmt.Errorf("user のサブコマンドは add のみです\n%s", usage)
@@ -55,6 +58,7 @@ func run(args []string) error {
 		subcommand, rest = "user add", rest[1:]
 	}
 
+	// 読む前にコマンド名と引数の個数を確認
 	want, known := expectedArgCount[subcommand]
 	if !known {
 		return fmt.Errorf("不明なサブコマンドです: %q\n%s", subcommand, usage)
@@ -63,6 +67,8 @@ func run(args []string) error {
 		return fmt.Errorf("%s の引数の数が正しくありません\n%s", subcommand, usage)
 	}
 
+	// run(実行のたびに読み込んで検証)
+	// 書き込みはここではしないので壊れていてもそのまま
 	state, err := loadState(stateFilePath)
 	if err != nil {
 		return err
@@ -81,6 +87,7 @@ func run(args []string) error {
 		output, changed, err = runChgrp(state, rest)
 	case "check":
 		output, changed, err = runCheck(state, rest)
+	// ファイル操作は別でrunFileOperationで管理
 	default:
 		output, changed, err = runFileOperation(state, subcommand, rest)
 	}
@@ -88,6 +95,7 @@ func run(args []string) error {
 		return err
 	}
 
+	// 状態を変えた(changed=true)だけ保存する
 	if changed {
 		if err := saveState(stateFilePath, state); err != nil {
 			return err
@@ -200,6 +208,7 @@ func runCheck(state *State, args []string) (string, bool, error) {
 	return fmt.Sprintln(file.Perm.Allows(class, op)), false, nil
 }
 
+// ファイル操作各種を処理
 func runFileOperation(state *State, subcommand string, args []string) (string, bool, error) {
 	fileName := args[0]
 	file, err := lookupFile(state, fileName)
@@ -217,6 +226,7 @@ func runFileOperation(state *State, subcommand string, args []string) (string, b
 		file.Perm = newPerm
 		changed = true
 
+	// 何で変更するか
 	case "on", "off", "flip", "can":
 		bit, err := ParseBitName(args[1])
 		if err != nil {
@@ -235,6 +245,7 @@ func runFileOperation(state *State, subcommand string, args []string) (string, b
 		case "can":
 			return fmt.Sprintln(file.Perm.Has(bit)), false, nil
 		}
+	// 表示だけなので変更しない
 	case "show":
 
 	}
